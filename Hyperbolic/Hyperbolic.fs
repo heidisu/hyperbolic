@@ -10,10 +10,12 @@ type Action = Draw of Point * Point
 type Instructions = Action list
 type Adjacency = Vertex | Edge
 
-let [<Literal>] P = 6.0
-let [<Literal>] Q = 4.0
+let [<Literal>] P = 6
+let [<Literal>] Q = 4
 
-let coshB = Math.Cos(Math.PI/Q) / Math.Sin(Math.PI/P)
+let fP = float P
+let fQ = float Q
+let coshB = Math.Cos(Math.PI/fQ) / Math.Sin(Math.PI/fP)
 let cosh2B = 2.0 * Math.Pow(coshB, 2.0) - 1.0
 let sinh2B = Math.Sqrt(Math.Pow(cosh2B, 2.0)-1.0)
 let identity = matrix [[1.0; 0.0; 0.0]
@@ -25,8 +27,8 @@ let reflectEdgeBisector = matrix [[1.0; 0.0; 0.0]
 let reflectPgonEdge = matrix [[-cosh2B; 0.0;sinh2B]
                               [0.0; 1.0; 0.0]
                               [-sinh2B; 0.0; cosh2B]]
-let reflectHypotenuse = matrix [[Math.Cos(2.0*Math.PI/P); Math.Sin(2.0*Math.PI/P); 0.0]
-                                [Math.Sin(2.0*Math.PI/P); -Math.Cos(2.0*Math.PI/P); 0.0]
+let reflectHypotenuse = matrix [[Math.Cos(2.0*Math.PI/fP); Math.Sin(2.0*Math.PI/fP); 0.0]
+                                [Math.Sin(2.0*Math.PI/fP); -Math.Cos(2.0*Math.PI/fP); 0.0]
                                 [0.0; 0.0; 1.0]]
 let rotateP = reflectHypotenuse * reflectEdgeBisector
 let rotateQ = reflectPgonEdge * reflectHypotenuse
@@ -68,15 +70,15 @@ let rec replicate graphics transform layers adjacency instructions =
         else
             let rotateVertex = rotateCenter * rotateQ
             replicate graphics rotateVertex (layers - 1) Edge instructions
-            let vertexPgons = if count > 1 then (int Q) - 3 else (int Q) - 4
+            let vertexPgons = if count > 1 then Q - 3 else Q - 4
             drawVertexPgon vertexPgons (rotateVertex * rotateQ)
             replicateEdges (count - 1) (rotateCenter * rotateP)
 
     drawPolygonPattern graphics transform instructions
     if layers > 0 then
         match adjacency with
-        | Edge -> replicateEdges ((int P) - 3) (transform * rotate3P)
-        | Vertex -> replicateEdges ((int P) - 2) (transform * rotate2P)
+        | Edge -> replicateEdges (P - 3) (transform * rotate3P)
+        | Vertex -> replicateEdges (Q - 2) (transform * rotate2P)
 
 let drawImage filename layers instructions = 
     let image = new Bitmap(1000, 1000)
@@ -93,11 +95,11 @@ let drawImage filename layers instructions =
         else
             let rotateVertex = rotateCenter * rotateQ
             replicate graphics rotateVertex (layers - 2) Edge instructions
-            drawQpolygon (int Q - 3) (rotateVertex * rotateQ)
+            drawQpolygon (Q - 3) (rotateVertex * rotateQ)
             drawPpolygon (count - 1) (rotateCenter * rotateP)
 
     drawPolygonPattern graphics identity instructions
-    drawPpolygon (int P) identity    
+    drawPpolygon P identity    
     image.Save filename
 
 [<EntryPoint>]
@@ -122,4 +124,4 @@ let main _ =
     drawImage "lines.png" 4 lineInstructions
    
 
-    0 // return an integer exit code
+    0
