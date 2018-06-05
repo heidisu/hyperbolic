@@ -10,7 +10,7 @@ is replaced with
 A hyperbolic plane can be represented by a unit disk in an Euclidean plan, the Poincaré disk model, where the straight lines are lines through the origin and circle arcs intersecting the boundary circle in 90 angles of 90 degrees. (Yes, circle arcs are lines). [8]
 
 ## What is p and q?
-The hyperbolic plane can be tesselated (covered by polygonal tiles) in inifinite many ways. A tiling is regular if the the angles in the polygon are equal, and the sides have the same length. A [p q] tesselation is a regular tesselation where p is the number of edges in the polygons, and q are the number of polygons meeting at each corner.
+The hyperbolic plane can be tesselated (covered by polygonal tiles) in inifinite many ways. A tiling is regular if the the angles in the polygon are equal, and the sides have the same length. A [p q] tesselation is a regular tesselation where p is the number of edges in the polygons, and q are the number of polygons meeting at each vertex.
 
 ## Simple transformations
 
