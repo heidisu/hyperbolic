@@ -78,7 +78,7 @@ let rec replicate graphics transform layers adjacency instructions =
     if layers > 0 then
         match adjacency with
         | Edge -> replicateEdges (P - 3) (transform * rotate3P)
-        | Vertex -> replicateEdges (Q - 2) (transform * rotate2P)
+        | Vertex -> replicateEdges (P - 2) (transform * rotate2P)
 
 let drawImage filename layers instructions = 
     let image = new Bitmap(1000, 1000)
