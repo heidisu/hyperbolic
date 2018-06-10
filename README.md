@@ -7,14 +7,33 @@ is replaced with
 
 > For any given line R and point P not on R, in the plane containing both line R and point P there are at least two distinct lines through P that do not intersect R. [7]
 
-A hyperbolic plane can be represented by a unit disk in an Euclidean plan, the Poincaré disk model, where the straight lines are lines through the origin and circle arcs intersecting the boundary circle in 90 angles of 90 degrees. (Yes, circle arcs are lines). [8]
+A hyperbolic plane can be represented by a unit disk in an Euclidean plan, the Poincaré disk model, where the straight lines are lines through the origin and circle arcs intersecting the boundary circle in 90 angles of 90 degrees. (Yes, circle arcs are lines). [8] In the Poincaré disk model the angles are the same as the if the model was Euclidean, but the distances are not the same as in Euclidean geometry. A segment closer to the bundary circle has longer hyperbolic distance than if the same piece was closer to the origin of the circle. Hence, the repeating patterns we will see on the disk will actually have the same size and actually be identical in hyperbolic geometry.
 
-## What is p and q?
-The hyperbolic plane can be tesselated (covered by polygonal tiles) in inifinite many ways. A tiling is regular if the the angles in the polygon are equal, and the sides have the same length. A [p q] tesselation is a regular tesselation where p is the number of edges in the polygons, and q are the number of polygons meeting at each vertex.
+<figure>
+  <img src="img/hyperbolic-lines.png" width="300px" alt="hyperbolic lines" />
+  <figcaption>Hyperbolic lines</figcaption>
+</figure>
+
+## The implementation
+The code for drawing hyperbolic patterns in the repo is based on Dunham's code given in [1]. The following section explain this implementation.
+
+## What are p and q?
+The hyperbolic plane can be tesselated (covered by polygonal tiles) in inifinite many ways. A tiling is regular if the the angles in the polygon are equal, and the sides have the same length. A [p q] tesselation is a regular tesselation where p is the number of edges in the polygons, and q are the number of polygons meeting at each vertex. The following examples will all have [p, q] = [4, 6]. 
+How the tesselation is constructed is explained in [5], the figure below shows how the fist central polygon with six edges are cut out of the six circles around the bounding circle.
+
+<figure>
+  <img src="img/tesselations.png" width="300px" alt="First polygon in the tesselation" />
+  <figcaption>First polygon in the tesselation</figcaption>
+</figure>
 
 ## Simple transformations
 
 ## Putting the pieces together
+
+<figure>
+  <img src="img/lines.png" alt="Line pattern with 3 layers" />
+  <figcaption>Line pattern with 4 layers</figcaption>
+</figure>
 
 ## References
 
