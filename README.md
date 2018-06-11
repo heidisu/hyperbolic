@@ -27,13 +27,13 @@ How the tesselation is constructed is explained in [5], the figure below shows h
 </figure>
 
 ## Simple transformations
-The the triangle with side along the positive x-axis in the figure below will be of special importance, transformations along the sides of this triangle will be the building blocks of transfering the motif in the first polygon to the other polygons in the tesselation.
+The triangle with side along the positive x-axis in the figure below will be of special importance. Transformations along the sides of this triangle will be the building blocks of transfering the motif in the first polygon to the other polygons in the tesselation.
 <figure>
   <img src="img/main_triangle.png" width="300px" alt="The essential triangle" />
   <figcaption>The essential triangle</figcaption>
 </figure>
 
-The transformations **reflectEdgeBisector**, **reflectPgonEdge** and **reflectHypotenuse** will do reflection across the edge on the x-axis, across the polygon edge and across the hypotenuse respectively. This is shown on the figures below where the line segment inside this triangle is transformed with each of these reflections.
+The transformations **reflectEdgeBisector**, **reflectPgonEdge** and **reflectHypotenuse** perform reflection across the edge on the x-axis, across the polygon edge, and across the hypotenuse respectively. This is shown on the figures below where the line segment inside this triangle is transformed with each of these reflections.
 
 <figure>
   <img src="img/edgebisector.png" width="300px" alt="Reflection across the edge bisector" />
