@@ -10,8 +10,8 @@ type Action = Draw of Point * Point
 type Instructions = Action list
 type Adjacency = Vertex | Edge
 type ImageProperties = 
-        { Size : int
-          CircleRadius : float }
+        { Size: int
+          CircleRadius: float }
 
 let imageProperties = { Size = 700
                         CircleRadius = 300.0 }
@@ -23,32 +23,45 @@ let fQ = float Q
 let coshB = Math.Cos(Math.PI/fQ) / Math.Sin(Math.PI/fP)
 let cosh2B = 2.0 * Math.Pow(coshB, 2.0) - 1.0
 let sinh2B = Math.Sqrt(Math.Pow(cosh2B, 2.0)-1.0)
+
 let identity = matrix [[1.0; 0.0; 0.0]
                        [0.0; 1.0; 0.0]
                        [0.0; 0.0; 1.0]]
+
 let reflectEdgeBisector = matrix [[1.0; 0.0; 0.0]
                                   [0.0; -1.0; 0.0]
                                   [0.0; 0.0; 1.0]]
+
 let reflectPgonEdge = matrix [[-cosh2B; 0.0;sinh2B]
                               [0.0; 1.0; 0.0]
                               [-sinh2B; 0.0; cosh2B]]
+
 let reflectHypotenuse = matrix [[Math.Cos(2.0*Math.PI/fP); Math.Sin(2.0*Math.PI/fP); 0.0]
                                 [Math.Sin(2.0*Math.PI/fP); -Math.Cos(2.0*Math.PI/fP); 0.0]
                                 [0.0; 0.0; 1.0]]
+
 let rotateP = reflectHypotenuse * reflectEdgeBisector
+let rotate2P = rotateP * rotateP
+let rotate3P = rotate2P * rotateP
 let rotateQ = reflectPgonEdge * reflectHypotenuse
 
-let transformPoint (t : Matrix<float>) (Point(x, y)) = 
+let transformPoint (transform : Matrix<float>) (Point(x, y)) = 
     let sumSquare = x*x + y*y
     let z = vector [2.0 * x/(1.0 - sumSquare);  2.0 * y/(1.0 - sumSquare); (1.0 + sumSquare)/ (1.0 - sumSquare)]
-    let res = t * z
-    (res.[0]/(1.0 + res.[2]), res.[1]/(1.0 + res.[2]))
+    let res = transform * z
+    Point(res.[0]/(1.0 + res.[2]), res.[1]/(1.0 + res.[2]))
 
-let drawPolygonPattern (graphics : Graphics) (t : Matrix<float>) (instructions : Instructions) = 
+let transformAction transform action = 
+    match action with
+    | Draw (p1, p2) -> let p1Trans = transformPoint transform p1
+                       let p2Trans = transformPoint transform p2
+                       Draw (p1Trans, p2Trans)  
+
+let drawTransformation (graphics : Graphics) (transform : Matrix<float>) (instructions : Instructions) = 
     let pen = new Pen(Color.Black)
     let center = (float) imageProperties.Size / 2.0
     let radius = imageProperties.CircleRadius
-    let scale (x, y) = (x * radius + center, y * radius + center)
+    let scale (Point (x, y)) = (x * radius + center, y * radius + center)
     
     let rectangle = new RectangleF(
                             new PointF(float32 (center - radius), float32 (center - radius)), 
@@ -56,16 +69,14 @@ let drawPolygonPattern (graphics : Graphics) (t : Matrix<float>) (instructions :
     graphics.DrawEllipse(pen, rectangle)
     
     instructions
+    |> List.map (fun instr -> transformAction transform instr)
     |> List.iter (fun instr -> match instr with
-                               | Draw (p1, p2) ->   let p1x, p1y = p1 |> transformPoint t |> scale
-                                                    let p2x, p2y = p2 |> transformPoint t |> scale
+                               | Draw (p1, p2) ->   let p1x, p1y = scale p1
+                                                    let p2x, p2y = scale p2
                                                     graphics.DrawLine(pen, new PointF(float32 p1x, float32 p1y), new PointF(float32 p2x, float32 p2y))
                                )
 
 let rec replicate graphics transform layers adjacency instructions = 
-    let rotate2P = rotateP * rotateP
-    let rotate3P = rotate2P * rotateP
-
     let rec drawVertexPgon count rotateVertex = 
         if count <= 0 then ()
         else 
@@ -81,7 +92,7 @@ let rec replicate graphics transform layers adjacency instructions =
             drawVertexPgon vertexPgons (rotateVertex * rotateQ)
             replicateEdges (count - 1) (rotateCenter * rotateP)
 
-    drawPolygonPattern graphics transform instructions
+    drawTransformation graphics transform instructions
     if layers > 0 then
         match adjacency with
         | Edge -> replicateEdges (P - 3) (transform * rotate3P)
@@ -106,7 +117,7 @@ let drawImage filename layers instructions =
             drawQpolygon (Q - 3) (rotateVertex * rotateQ)
             drawPpolygon (count - 1) (rotateCenter * rotateP)
 
-    drawPolygonPattern graphics identity instructions
+    drawTransformation graphics identity instructions
     drawPpolygon P identity  
     image.RotateFlip RotateFlipType.RotateNoneFlipY  
     image.Save filename
@@ -137,8 +148,8 @@ let drawWithTesselationLines filename transform instructions =
                                         scale(Math.Cos(Math.PI*n/fP), Math.Sin(Math.PI*n/fP)), 
                                         scale(Math.Cos(Math.PI*(n + fP)/fP), Math.Sin(Math.PI*(n + fP)/fP))))
 
-    drawPolygonPattern graphics identity instructions 
-    drawPolygonPattern graphics transform instructions 
+    drawTransformation graphics identity instructions 
+    drawTransformation graphics transform instructions 
     image.RotateFlip RotateFlipType.RotateNoneFlipY
     image.Save filename
 
@@ -163,9 +174,9 @@ let main _ =
     drawImage "polygons.png" 4 polygonInstuctions
     drawImage "lines.png" 4 lineInstructions
 
-    drawWithTesselationLines "edgebisector.png" reflectEdgeBisector [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "hypotenuse.png" reflectHypotenuse [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "pgonedge.png" reflectPgonEdge [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
+    drawWithTesselationLines "edgebisector.png" reflectEdgeBisector [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
+    drawWithTesselationLines "hypotenuse.png" reflectHypotenuse [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
+    drawWithTesselationLines "pgonedge.png" reflectPgonEdge [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
     drawWithTesselationLines "rotP.png" rotateP [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
     drawWithTesselationLines "rotQ.png" rotateQ [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
     
