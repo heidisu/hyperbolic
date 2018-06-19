@@ -174,9 +174,9 @@ let main _ =
     drawImage "polygons.png" 4 polygonInstuctions
     drawImage "lines.png" 4 lineInstructions
 
-    drawWithTesselationLines "edgebisector.png" reflectEdgeBisector [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
-    drawWithTesselationLines "hypotenuse.png" reflectHypotenuse [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
-    drawWithTesselationLines "pgonedge.png" reflectPgonEdge [Draw(rotPi2P 5.0 d, rotPi2P 5.0 c)]
+    drawWithTesselationLines "edgebisector.png" reflectEdgeBisector [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
+    drawWithTesselationLines "hypotenuse.png" reflectHypotenuse [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
+    drawWithTesselationLines "pgonedge.png" reflectPgonEdge [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
     drawWithTesselationLines "rotP.png" rotateP [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
     drawWithTesselationLines "rotQ.png" rotateQ [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
     
