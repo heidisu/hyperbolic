@@ -8,7 +8,7 @@ open FsAlg.Generic
 type Point = Point of float * float
 type Action = Draw of Point * Point
 type Instructions = Action list
-type Adjacency = Vertex | Edge
+type Adjacency = Vertex | Edge | FirstLayer
 type ImageProperties = 
         { Size: int
           CircleRadius: float }
@@ -78,18 +78,17 @@ let drawTransformation (graphics : Graphics) (transform : Matrix<float>) (instru
 
 let rec replicate graphics transform layers adjacency instructions = 
     let rec drawVertexPgon count rotateVertex = 
-        if count <= 0 then ()
+        if count = 0 then ()
         else 
            replicate graphics rotateVertex (layers - 1) Vertex instructions
            drawVertexPgon (count - 1) (rotateVertex * rotateQ)
 
     let rec replicateEdges count rotateCenter = 
-        if count <= 0 then ()
+        if count = 0 then ()
         else
             let rotateVertex = rotateCenter * rotateQ
             replicate graphics rotateVertex (layers - 1) Edge instructions
-            let vertexPgons = if count > 1 then Q - 3 else Q - 4
-            drawVertexPgon vertexPgons (rotateVertex * rotateQ)
+            drawVertexPgon (Q - 3) (rotateVertex * rotateQ)
             replicateEdges (count - 1) (rotateCenter * rotateP)
 
     drawTransformation graphics transform instructions
@@ -97,28 +96,15 @@ let rec replicate graphics transform layers adjacency instructions =
         match adjacency with
         | Edge -> replicateEdges (P - 3) (transform * rotate3P)
         | Vertex -> replicateEdges (P - 2) (transform * rotate2P)
+        | FirstLayer -> replicateEdges P transform
 
 let drawImage filename layers instructions = 
     let size = imageProperties.Size
     let image = new Bitmap(size, size)
     let graphics = Graphics.FromImage image
 
-    let rec drawQpolygon count rotateVertex = 
-        if count = 0 then ()
-        else 
-            replicate graphics rotateVertex (layers - 2) Vertex instructions
-            drawQpolygon (count - 1) (rotateVertex * rotateQ)
-    
-    let rec drawPpolygon count rotateCenter = 
-        if count = 0 then ()
-        else
-            let rotateVertex = rotateCenter * rotateQ
-            replicate graphics rotateVertex (layers - 2) Edge instructions
-            drawQpolygon (Q - 3) (rotateVertex * rotateQ)
-            drawPpolygon (count - 1) (rotateCenter * rotateP)
-
     drawTransformation graphics identity instructions
-    drawPpolygon P identity  
+    replicate graphics identity (layers - 1) FirstLayer instructions
     image.RotateFlip RotateFlipType.RotateNoneFlipY  
     image.Save filename
 
