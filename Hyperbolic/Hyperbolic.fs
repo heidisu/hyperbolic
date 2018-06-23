@@ -1,4 +1,4 @@
-module Hyperbolic
+module Hyperbolic.Draw
 
 open System
 open System.Drawing
@@ -6,9 +6,12 @@ open System.Drawing
 open FsAlg.Generic
 
 type Point = Point of float * float
-type Action = Draw of Point * Point
+type Radius = Radius of float
+type Action = | DrawLine of Point * Point
+              | DrawCircle of Point * Radius
 type Instructions = Action list
 type Adjacency = Vertex | Edge | FirstLayer
+
 type ImageProperties = 
         { Size: int
           CircleRadius: float }
@@ -45,125 +48,103 @@ let rotate2P = rotateP * rotateP
 let rotate3P = rotate2P * rotateP
 let rotateQ = reflectPgonEdge * reflectHypotenuse
 
+let blackPen = new Pen(Color.Black)
+
 let transformPoint (transform : Matrix<float>) (Point(x, y)) = 
     let sumSquare = x*x + y*y
-    let z = vector [2.0 * x/(1.0 - sumSquare);  2.0 * y/(1.0 - sumSquare); (1.0 + sumSquare)/ (1.0 - sumSquare)]
+    let z = if sumSquare <> 1.0 
+            then vector [2.0 * x/(1.0 - sumSquare);  2.0 * y/(1.0 - sumSquare); (1.0 + sumSquare)/ (1.0 - sumSquare)]
+            else vector [2.0 * x; 2.0 * y; 1.0]
     let res = transform * z
     Point(res.[0]/(1.0 + res.[2]), res.[1]/(1.0 + res.[2]))
 
 let transformAction transform action = 
     match action with
-    | Draw (p1, p2) -> let p1Trans = transformPoint transform p1
-                       let p2Trans = transformPoint transform p2
-                       Draw (p1Trans, p2Trans)  
+    | DrawLine (p1, p2) -> let p1Trans = transformPoint transform p1
+                           let p2Trans = transformPoint transform p2
+                           DrawLine (p1Trans, p2Trans)  
+    | DrawCircle (pt, r) -> let ptTrans = transformPoint transform pt
+                            DrawCircle (ptTrans, r)
 
-let drawTransformation (graphics : Graphics) (transform : Matrix<float>) (instructions : Instructions) = 
-    let pen = new Pen(Color.Black)
+let drawTransformation (graphics : Graphics) (pen : Pen) (transform : Matrix<float>) (instructions : Instructions) = 
     let center = (float) imageProperties.Size / 2.0
     let radius = imageProperties.CircleRadius
     let scale (Point (x, y)) = (x * radius + center, y * radius + center)
     
-    let rectangle = new RectangleF(
-                            new PointF(float32 (center - radius), float32 (center - radius)), 
-                            new SizeF(PointF(float32 (2.0 * radius), float32 (2.0 * radius))))
-    graphics.DrawEllipse(pen, rectangle)
-    
     instructions
     |> List.map (fun instr -> transformAction transform instr)
     |> List.iter (fun instr -> match instr with
-                               | Draw (p1, p2) ->   let p1x, p1y = scale p1
-                                                    let p2x, p2y = scale p2
-                                                    graphics.DrawLine(pen, new PointF(float32 p1x, float32 p1y), new PointF(float32 p2x, float32 p2y))
-                               )
+                               | DrawLine (p1, p2) -> let p1x, p1y = scale p1
+                                                      let p2x, p2y = scale p2
+                                                      graphics.DrawLine(pen, new PointF(float32 p1x, float32 p1y), new PointF(float32 p2x, float32 p2y))
+                               | DrawCircle (pt, Radius r) ->   let ptx, pty = scale pt
+                                                                let rectangle = new RectangleF(
+                                                                                        new PointF(float32 (ptx - r*radius), float32 (pty - r* radius)), 
+                                                                                        new SizeF(PointF(float32 (2.0 * r * radius), float32 (2.0 * r * radius))))
+                                                                graphics.DrawEllipse(pen, rectangle) )
 
 let rec replicate graphics transform layers adjacency instructions = 
-    let rec drawVertexPgon count rotateVertex = 
+    let rec replicateAcrossVertices count rotateVertex = 
         if count = 0 then ()
         else 
            replicate graphics rotateVertex (layers - 1) Vertex instructions
-           drawVertexPgon (count - 1) (rotateVertex * rotateQ)
+           replicateAcrossVertices (count - 1) (rotateVertex * rotateQ)
 
-    let rec replicateEdges count rotateCenter = 
+    let rec replicateAcrossEdges count rotateCenter = 
         if count = 0 then ()
         else
             let rotateVertex = rotateCenter * rotateQ
             replicate graphics rotateVertex (layers - 1) Edge instructions
-            drawVertexPgon (Q - 3) (rotateVertex * rotateQ)
-            replicateEdges (count - 1) (rotateCenter * rotateP)
+            replicateAcrossVertices (Q - 3) (rotateVertex * rotateQ)
+            replicateAcrossEdges (count - 1) (rotateCenter * rotateP)
 
-    drawTransformation graphics transform instructions
+    drawTransformation graphics blackPen transform instructions
+    
     if layers > 0 then
         match adjacency with
-        | Edge -> replicateEdges (P - 3) (transform * rotate3P)
-        | Vertex -> replicateEdges (P - 2) (transform * rotate2P)
-        | FirstLayer -> replicateEdges P transform
+        | Edge -> replicateAcrossEdges (P - 3) (transform * rotate3P)
+        | Vertex -> replicateAcrossEdges (P - 2) (transform * rotate2P)
+        | FirstLayer -> replicateAcrossEdges P transform
 
-let drawImage filename layers instructions = 
+
+let drawInstructions filename (drawingFunctions : (Graphics -> unit) seq) = 
     let size = imageProperties.Size
     let image = new Bitmap(size, size)
     let graphics = Graphics.FromImage image
 
-    drawTransformation graphics identity instructions
-    replicate graphics identity (layers - 1) FirstLayer instructions
+    drawingFunctions
+    |> Seq.iter (fun drawingFunction -> drawingFunction graphics)
     image.RotateFlip RotateFlipType.RotateNoneFlipY  
     image.Save filename
 
-let drawWithTesselationLines filename transform instructions = 
-    let size = imageProperties.Size
-    let image = new Bitmap(size, size)
-    let graphics = Graphics.FromImage image
-    let center = (float) size/2.0
-    let radius = imageProperties.CircleRadius
+let drawImage filename layers instructions = 
+    let drawingFunctions = 
+        [fun graphics -> drawTransformation graphics blackPen identity [DrawCircle (Point(0.0, 0.0), Radius 1.0)]
+         fun graphics -> drawTransformation graphics blackPen identity instructions
+         fun graphics -> replicate graphics identity (layers - 1) FirstLayer instructions]
+    drawInstructions filename drawingFunctions
+    
+let drawImageWithTesselation filename transform instructions = 
     
     let linePen = new Pen(Color.Green)
     linePen.DashPattern <-[|float32 4.0; float32 4.0|]
     let circlePen = new Pen(Color.Purple)
 
-  
-    let scale (x, y) = new PointF(float32 (x * radius + center), float32 (y * radius + center))
+    let tesselationLines = 
+        [1.0 .. fP]
+        |> List.map (fun n -> DrawCircle(Point (Math.Sqrt(2.0)*Math.Cos(2.0*Math.PI*n/fP), Math.Sqrt(2.0)*Math.Sin(2.0*Math.PI*n/fP)), Radius 1.0))
 
-    [1.0 .. fP]
-    |> Seq.map (fun n -> new RectangleF(
-                                scale(Math.Sqrt(2.0)*Math.Cos(2.0*Math.PI*n/fP) - 1.0, Math.Sqrt(2.0)*Math.Sin(2.0*Math.PI*n/fP) - 1.0),
-                                new SizeF (new PointF (float32 (2.0 * radius), float32 (2.0 * radius)))))
-    |> Seq.iter (fun rectangle -> graphics.DrawEllipse(circlePen, rectangle))
+    let helperLines  = 
+        [1.0 .. fP] 
+        |> List.map (fun n -> DrawLine(Point(Math.Cos(Math.PI*n/fP), Math.Sin(Math.PI*n/fP)),
+                                       Point(Math.Cos(Math.PI*(n + fP)/fP), Math.Sin(Math.PI*(n + fP)/fP))))
 
-    [1.0 .. fP]
-    |> Seq.iter(fun n -> graphics.DrawLine(
-                                        linePen, 
-                                        scale(Math.Cos(Math.PI*n/fP), Math.Sin(Math.PI*n/fP)), 
-                                        scale(Math.Cos(Math.PI*(n + fP)/fP), Math.Sin(Math.PI*(n + fP)/fP))))
+    let drawingFunctions = [
+     fun graphics -> drawTransformation graphics blackPen identity [DrawCircle(Point(0.0, 0.0), Radius 1.0)]
+     fun graphics -> drawTransformation graphics circlePen identity tesselationLines
+     fun graphics -> drawTransformation graphics linePen identity helperLines
+     fun graphics -> drawTransformation graphics blackPen identity instructions 
+     fun graphics -> drawTransformation graphics blackPen transform instructions
+    ]
 
-    drawTransformation graphics identity instructions 
-    drawTransformation graphics transform instructions 
-    image.RotateFlip RotateFlipType.RotateNoneFlipY
-    image.Save filename
-
-[<EntryPoint>]
-let main _ =
-    let c = 0.4
-    let d = 0.05
-    let rotatePi idx frac c = Point(c * Math.Cos(Math.PI*idx/frac), c * Math.Sin(Math.PI*idx/frac))
-    let rotPiP idx = rotatePi idx fP
-    let rotPi2P idx = rotatePi idx (2.0 * fP)
-
-    let polygonInstuctions = 
-        seq {1.0 .. (2.0 * fP)}
-        |> Seq.toList
-        |> List.map (fun idx -> Draw(rotPiP idx c, rotPiP (idx + 1.0) c))
-    
-    let lineInstructions = 
-        seq {1.0 .. 2.0 .. (4.0 * fP - 1.0)}
-        |> Seq.toList
-        |> List.map (fun idx -> Draw(rotPi2P idx d, rotPi2P idx c))
-
-    drawImage "polygons.png" 4 polygonInstuctions
-    drawImage "lines.png" 4 lineInstructions
-
-    drawWithTesselationLines "edgebisector.png" reflectEdgeBisector [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "hypotenuse.png" reflectHypotenuse [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "pgonedge.png" reflectPgonEdge [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "rotP.png" rotateP [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawWithTesselationLines "rotQ.png" rotateQ [Draw(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    
-    0
+    drawInstructions filename drawingFunctions
