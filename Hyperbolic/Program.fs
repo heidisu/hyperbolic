@@ -6,29 +6,44 @@ open Hyperbolic.Draw
 
 [<EntryPoint>]
 let main _ =
-    let c = 0.4
-    let d = 0.05
-    let rotatePi idx frac c = Point(c * Math.Cos(Math.PI*idx/frac), c * Math.Sin(Math.PI*idx/frac))
+    let fP = 6.0
+    let startScale = 0.05
+    let endScale = 0.4
+    let rotatePi idx frac scale = Point(scale * Math.Cos(Math.PI*idx/frac), scale * Math.Sin(Math.PI*idx/frac))
     let rotPiP idx = rotatePi idx fP
     let rotPi2P idx = rotatePi idx (2.0 * fP)
 
     let polygonInstuctions = 
         seq {1.0 .. (2.0 * fP)}
         |> Seq.toList
-        |> List.map (fun idx -> DrawLine(rotPiP idx c, rotPiP (idx + 1.0) c))
+        |> List.map (fun idx -> DrawLine(rotPiP idx endScale, rotPiP (idx + 1.0) endScale))
     
     let lineInstructions = 
         seq {1.0 .. 2.0 .. (4.0 * fP - 1.0)}
         |> Seq.toList
-        |> List.map (fun idx -> DrawLine(rotPi2P idx d, rotPi2P idx c))
+        |> List.map (fun idx -> DrawLine(rotPi2P idx startScale, rotPi2P idx endScale))
 
-    drawImage "polygons.png" 4 polygonInstuctions
-    drawImage "lines.png" 4 lineInstructions
+    let polygonPattern = { P = 6; Q = 4; Layers = 4; InitialPattern = polygonInstuctions }
+    let polygonFileProps = { ImageSize = 700; BoundedCircleScale = 300.0; FileName = "polygons.png"; DrawTesselation = false }
+    let linePattern = { polygonPattern with InitialPattern = lineInstructions }
+    let lineFileProps = { polygonFileProps with FileName = "lines.png" }
+    drawHyperbolicPattern polygonPattern polygonFileProps
+    drawHyperbolicPattern linePattern lineFileProps
 
-    drawImageWithTesselation "edgebisector.png" reflectEdgeBisector [DrawLine(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawImageWithTesselation "hypotenuse.png" reflectHypotenuse [DrawLine(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawImageWithTesselation "pgonedge.png" reflectPgonEdge [DrawLine(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawImageWithTesselation "rotP.png" rotateP [DrawLine(rotPi2P 1.0 d, rotPi2P 1.0 c)]
-    drawImageWithTesselation "rotQ.png" rotateQ [DrawLine(rotPi2P 1.0 d, rotPi2P 1.0 c)]
+    let transformationMatrices = getTransformationMatrices polygonPattern.P polygonPattern.Q
+    let firstTriangleLine = DrawLine(rotPi2P 1.0 startScale, rotPi2P 1.0 endScale)
+    let reflectEdgeBisectorInstructions = [firstTriangleLine; transformAction transformationMatrices.ReflectEdgeBisector firstTriangleLine]
+    let reflectHypotenuseInstructions = [firstTriangleLine; transformAction transformationMatrices.ReflectHypotenuse firstTriangleLine]
+    let reflectPgonEdgeInstructions = [firstTriangleLine; transformAction transformationMatrices.ReflectPgonEdge firstTriangleLine]
+    let rotatePinstructions =  [firstTriangleLine; transformAction transformationMatrices.RotateP firstTriangleLine]
+    let rotateQInstructions =  [firstTriangleLine; transformAction transformationMatrices.RotateQ firstTriangleLine]
+    
+    let reflectEdgeBisectorPattern = { polygonPattern with InitialPattern = reflectEdgeBisectorInstructions; Layers = 1 }
+    let reflectEdgeBisectorFileProps = { polygonFileProps with DrawTesselation = true; FileName = "edgebisector.png" }
+    drawHyperbolicPattern reflectEdgeBisectorPattern reflectEdgeBisectorFileProps
+    drawHyperbolicPattern { reflectEdgeBisectorPattern with InitialPattern = reflectHypotenuseInstructions } {reflectEdgeBisectorFileProps with FileName = "hypotenuse.png" }
+    drawHyperbolicPattern { reflectEdgeBisectorPattern with InitialPattern = reflectPgonEdgeInstructions } {reflectEdgeBisectorFileProps with FileName = "pgonedge.png" }
+    drawHyperbolicPattern { reflectEdgeBisectorPattern with InitialPattern = rotatePinstructions } {reflectEdgeBisectorFileProps with FileName = "rotateP.png" }
+    drawHyperbolicPattern { reflectEdgeBisectorPattern with InitialPattern = rotateQInstructions } {reflectEdgeBisectorFileProps with FileName = "rotateQ.png" }
     
     0
