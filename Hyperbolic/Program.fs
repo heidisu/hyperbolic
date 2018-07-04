@@ -24,7 +24,7 @@ let main _ =
         |> List.map (fun idx -> DrawLine(rotPi2P idx startScale, rotPi2P idx endScale))
 
     let polygonPattern = { P = 6; Q = 4; Layers = 4; InitialPattern = polygonInstuctions }
-    let polygonFileProps = { ImageSize = 700; BoundedCircleScale = 300.0; FileName = "polygons.png"; DrawTesselation = false }
+    let polygonFileProps = { ImageSize = 700; BoundedCircleRadius = 300.0; FileName = "polygons.png"; DrawTesselation = false }
     let linePattern = { polygonPattern with InitialPattern = lineInstructions }
     let lineFileProps = { polygonFileProps with FileName = "lines.png" }
     drawHyperbolicPattern polygonPattern polygonFileProps
