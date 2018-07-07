@@ -3,6 +3,7 @@ module Hyperbolic.Main
 open System
 
 open Hyperbolic.Draw
+open Hyperbolic.Transformations
 
 [<EntryPoint>]
 let main _ =
@@ -30,7 +31,7 @@ let main _ =
     drawHyperbolicPattern polygonPattern polygonFileProps
     drawHyperbolicPattern linePattern lineFileProps
 
-    let transformationMatrices = getTransformationMatrices polygonPattern.P polygonPattern.Q
+    let transformationMatrices = transformationMatrices polygonPattern.P polygonPattern.Q
     let firstTriangleLine = DrawLine(rotPi2P 1.0 startScale, rotPi2P 1.0 endScale)
     let reflectEdgeBisectorInstructions = [firstTriangleLine; transformAction transformationMatrices.ReflectEdgeBisector firstTriangleLine]
     let reflectHypotenuseInstructions = [firstTriangleLine; transformAction transformationMatrices.ReflectHypotenuse firstTriangleLine]
