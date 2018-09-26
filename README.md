@@ -1,6 +1,6 @@
 # Hyperbolic geometry and patterns
 
-Hyperbolic geometri is a non-Euclidean geometry, where the only difference compared to (normal) Euclidean geometry is that the Euclidean axiom  
+Hyperbolic geometry is a non-Euclidean geometry, where the only difference compared to (normal) Euclidean geometry is that the Euclidean axiom  
 > In a plane, given a line and a point not on it, at most one line parallel to the given line can be drawn through the point. [6]  
 
 is replaced with  
